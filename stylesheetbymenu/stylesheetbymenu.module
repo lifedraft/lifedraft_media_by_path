@@ -1,0 +1,55 @@
+<?php
+  
+  function stylesheetbymenu_preprocess_page(&$variables) {  
+    $variables["stylesheet_by_menu"] = stylesheetbymenu_get();
+  }
+  
+  function stylesheetbymenu_get() {
+    // Get the name of the current theme
+    global $theme;
+    
+    $items = array();
+    $themes = list_themes();
+    $stylesheetbymenu = array();
+    
+    $path_alias = drupal_get_path_alias($_GET['q']);
+    
+    foreach ($themes as $theme_name => $theme_data) {
+      
+      if($theme_name != $theme) {
+        continue;
+      }
+      
+      if(array_key_exists("stylesheets-by-menu", $theme_data->info)) {
+
+        $theme_path = drupal_get_path("theme", $theme_name);
+        
+        foreach ($theme_data->info["stylesheets-by-menu"] as $path => $includes) {
+          
+          foreach ($includes as $media => $files) {
+            
+            foreach ($files as $file) {
+              
+              $page_match = drupal_match_path($path_alias, $path);
+              if ($path_alias != $_GET['q']) {
+                $page_match = $page_match || drupal_match_path($_GET['q'], $path);
+              }
+              
+              if($page_match) {
+                $stylesheetbymenu[$media]["theme"][$theme_path . "/" . $file] = true;
+              }
+            }
+              
+          }
+          
+        }
+        
+      }
+      
+    }
+    
+    return drupal_get_css($stylesheetbymenu);
+    
+  }
+  
+?>

@@ -1,0 +1,80 @@
+<?php
+  
+  function scriptbymenu_preprocess_page(&$variables) {    
+    $variables["scripts_by_menu"] = scriptbymenu_get();
+  }
+  
+  function scriptbymenu_get() {
+    // Get the name of the current theme
+    global $theme;
+    
+    $items = array();
+    $themes = list_themes();
+    $scripts_by_menu = array();
+    
+    $path_alias = drupal_get_path_alias($_GET['q']);
+    
+    foreach ($themes as $theme_name => $theme_data) {
+      
+      if($theme_name != $theme) {
+        continue;
+      }
+      
+      if(array_key_exists("scripts-by-menu", $theme_data->info)) {
+
+        $theme_path = drupal_get_path("theme", $theme_name);
+        
+        foreach ($theme_data->info["scripts-by-menu"] as $path => $includes) {
+          
+          foreach ($includes as $index => $file) {
+
+            $page_match = drupal_match_path($path_alias, $path);
+            if ($path_alias != $_GET['q']) {
+              $page_match = $page_match || drupal_match_path($_GET['q'], $path);
+            }
+            
+            if($page_match) {
+              
+              $file_path = $theme_path . "/" . $file;
+              
+              if($index === "inline") {
+                
+                $scripts_by_menu["inline"][] = $file;
+                
+              } else {
+                $scripts_by_menu["theme"][$file_path] = array(
+                  "cache" => true,
+                  "defer" => false,
+                  "preprocess" => true,
+                );
+              }
+            }
+
+          }
+          
+        }
+        
+      }
+      
+    }
+    
+    
+    if(array_key_exists("inline", $scripts_by_menu)) {
+      $inline_files = $scripts_by_menu["inline"][0];
+      $inline_files_output = "";
+      
+      foreach ($inline_files as $inline_file) {
+        $inline_files_output .= file_get_contents($theme_path . "/" . $inline_file);
+      }
+      
+      $scripts_by_menu["inline"][0] = array(
+        "defer" => false,
+        "code" => $inline_files_output,
+      );
+    }
+    
+    return drupal_get_js("header", $scripts_by_menu);
+
+  }
+  
+?>
